@@ -73,7 +73,10 @@ void tokenize_input(char *command, char **args, int *num_args)
 
 void exec_command(char **args)
 {
-	pid_t pid = fork();
+	pid_t pid;
+	int status;
+
+	pid = fork();
 
 	if (pid == -1)
 	{
@@ -82,7 +85,7 @@ void exec_command(char **args)
 	}
 	else if (pid == 0)
 	{
-		if (execve(args[0], args, NULL) == -1)
+		if (execvp(args[0], args) == -1)
 		{
 			printf("Command not found: %s\n", args[0]);
 			return (1);
@@ -92,6 +95,4 @@ void exec_command(char **args)
 	{
 		waitpid(pid, &status, 0);
 	}
-	}
-	return (0);
 }
