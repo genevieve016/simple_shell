@@ -1,92 +1,128 @@
 #include "shell.h"
 
 /**
-* get_environ - returns the string array copy of our environ
-* @info: Structure containing potential arguments. Used to maintain
-*          constant function prototype.
-* Return: Pointer to the environ string array
-*/
-char **get_environ(info_t *info)
+ * env_get_key - gets the value of an environment variable
+ * @key: the environment variable of interest
+ * @data: struct of the program's data
+ * Return: a pointer to the value of the variable or NULL if it doesn't exist
+ */
+char *env_get_key(char *key, data_of_program *data)
 {
-	if (!info->environ || info->env_changed)
-	{
-		info->environ = list_to_strings(info->env);
-		info->env_changed = 0;
+	int i, key_length = 0;
+
+	/* validate the arguments */
+	if (key == NULL || data->env == NULL)
+		return (NULL);
+
+	/* obtains the leng of the variable requested */
+	key_length = str_length(key);
+
+	for (i = 0; data->env[i]; i++)
+	{/* Iterates through the environ and check for coincidence of the vame */
+		if (str_compare(key, data->env[i], key_length) &&
+		 data->env[i][key_length] == '=')
+		{/* returns the value of the key NAME=  when find it*/
+			return (data->env[i] + key_length + 1);
+		}
 	}
-	exit(info->environ);
+	/* returns NULL if did not find it */
+	return (NULL);
 }
 
 /**
-* _unsetenv - Remove an environment variable
-* @info: Structure containing potential arguments. Used to maintain
-*        constant function prototype.
-* @var: the string env var property
-* Return: 1 on delete, 0 otherwise
-*/
-int _unsetenv(info_t *info, char *var)
-{
-	list_t *node = info->env;
-	size_t i = 0;
-	char *p;
+ * env_set_key - overwrite the value of the environment variable
+ * or create it if does not exist.
+ * @key: name of the variable to set
+ * @value: new value
+ * @data: struct of the program's data
+ * Return: 1 if the parameters are NULL, 2 if there is an erroror 0 if sucess.
+ */
 
-	if (!node || !var)
-		exit(0);
-	while (node)
-	{
-		p = starts_with(node->str, var);
-		if (p && *p == '=')
-		{
-			info->env_changed = delete_node_at_index(&(info->env), i);
-			i = 0;
-			node = info->env;
-			continue;
+int env_set_key(char *key, char *value, data_of_program *data)
+{
+	int i, key_length = 0, is_new_key = 1;
+
+	/* validate the arguments */
+	if (key == NULL || value == NULL || data->env == NULL)
+		return (1);
+
+	/* obtains the leng of the variable requested */
+	key_length = str_length(key);
+
+	for (i = 0; data->env[i]; i++)
+	{/* Iterates through the environ and check for coincidence of the vame */
+		if (str_compare(key, data->env[i], key_length) &&
+		 data->env[i][key_length] == '=')
+		{/* If key already exists */
+			is_new_key = 0;
+			/* free the entire variable, it is new created below */
+			free(data->env[i]);
+			break;
 		}
-		node = node->next;
-		i++;
 	}
-	exit(info->env_changed);
+	/* make an string of the form key=value */
+	data->env[i] = str_concat(str_duplicate(key), "=");
+	data->env[i] = str_concat(data->env[i], value);
+
+	if (is_new_key)
+	{/* if the variable is new, it is create at end of actual list and we need*/
+	/* to put the NULL value in the next position */
+		data->env[i + 1] = NULL;
+	}
+	return (0);
 }
 
 /**
-* _setenv - Initialize a new environment variable,
-*           or modify an existing one
-* @info: Structure containing potential arguments. Used to maintain
-*        constant function prototype.
-* @var: the string env var property
-* @value: the string env var value
-* Return: Always 0
-*/
-int _setenv(info_t *info, char *var, char *value)
+ * env_remove_key - remove a key from the environment
+ * @key: the key to remove
+ * @data: the sructure of the program's data
+ * Return: 1 if the key was removed, 0 if the key does not exist;
+ */
+int env_remove_key(char *key, data_of_program *data)
 {
-	char *buf = NULL;
-	list_t *node;
-	char *p;
+	int i, key_length = 0;
 
-	if (!var || !value)
-		exit(0);
+	/* validate the arguments */
+	if (key == NULL || data->env == NULL)
+		return (0);
 
-	buf = malloc(_strlen(var) + _strlen(value) + 2);
+	/* obtains the leng of the variable requested */
+	key_length = str_length(key);
 
-	if (!buf)
-		exit(1);
-	_strcpy(buf, var);
-	_strcat(buf, "=");
-	_strcat(buf, value);
-	node = info->env;
-	while (node)
-	{
-		p = starts_with(node->str, var);
-		if (p && *p == '=')
-		{
-			free(node->str);
-			node->str = buf;
-			info->env_changed = 1;
-			exit(0);
+	for (i = 0; data->env[i]; i++)
+	{/* iterates through the environ and checks for coincidences */
+		if (str_compare(key, data->env[i], key_length) &&
+		 data->env[i][key_length] == '=')
+		{/* if key already exists, remove them */
+			free(data->env[i]);
+
+			/* move the others keys one position down */
+			i++;
+			for (; data->env[i]; i++)
+			{
+				data->env[i - 1] = data->env[i];
+			}
+			/* put the NULL value at the new end of the list */
+			data->env[i - 1] = NULL;
+			return (1);
 		}
-		node = node->next;
 	}
-	add_node_end(&(info->env), buf, 0);
-	free(buf);
-	info->env_changed = 1;
-	exit(0);
+	return (0);
+}
+
+
+/**
+ * print_environ - prints the current environ
+ * @data: struct for the program's data
+ * Return: nothing
+ */
+void print_environ(data_of_program *data)
+{
+	int j;
+
+	for (j = 0; data->env[j]; j++)
+	{
+		_print(data->env[j]);
+		_print("\n");
+	}
 }
