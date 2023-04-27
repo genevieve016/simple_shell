@@ -1,120 +1,86 @@
 #include "shell.h"
+
 /**
- * main - initialize the variables of the program
- * @argc: number of values received from the command line
- * @argv: values received from the command line
- * @env: number of values received from the command line
- * Return: zero on succes.
+ * free_data - frees memory allocated for data structure
+ * @datash: pointer to datash data structure
+ *
+ * Return: void
  */
-int main(int argc, char *argv[], char *env[])
+
+void free_data(data_shell *datash)
 {
-	data_of_program data_struct = {NULL}, *data = &data_struct;
-	char *prompt = "";
+	char **env = datash->environ;
+	int i;
 
-	inicialize_data(data, argc, argv, env);
-
-	signal(SIGINT, handle_ctrl_c);
-
-	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO) && argc == 1)
-	{/* We are in the terminal, interactive mode */
-		errno = 2;/*???????*/
-		prompt = PROMPT_MSG;
+	for (i = 0; env[i] != NULL; i++)
+	{
+		free(env[i]);
 	}
-	errno = 0;
-	sisifo(prompt, data);
-	return (0);
+	free(env);
+	free(datash->pid);
 }
 
 /**
- * handle_ctrl_c - print the prompt in a new line
- * when the signal SIGINT (ctrl + c) is send to the program
- * @UNUSED: option of the prototype
+ * set_data - initializes datash data structure
+ * @datash: pointer to datash data structure
+ * @av: array of strings representing the command-line args
+ *
+ * Return: void
  */
-void handle_ctrl_c(int opr UNUSED)
+
+void set_data(data_shell *datash, char **av)
 {
-	_print("\n");
-	_print(PROMPT_MSG);
+	int i, environ_len = 0;
+
+  /* Count the number of environment variables. */
+	for (i = 0; environ[i] != NULL; i++)
+	{
+		environ_len++;
+	}
+
+  /* Set members of the data_shell struct. */
+	datash->av = av;
+	datash->input = NULL;
+	datash->args = NULL;
+	datash->status = 0;
+	datash->counter = 1;
+	datash->pid = malloc(10 * sizeof(char));
+	sprintf(datash->pid, "%d", getpid());
+
+  /* Allocate memory for the environ array. */
+	datash->environ = malloc((environ_len + 1) * sizeof(char *));
+	for (i = 0; environ[i] != NULL; i++)
+	{
+		datash->environ[i] = strdup(environ[i]);
+	}
+	datash->environ[i] = NULL;
 }
 
 /**
- * inicialize_data - inicialize the struct with the info of the program
- * @data: pointer to the structure of data
- * @argv: array of arguments pased to the program execution
- * @env: environ pased to the program execution
- * @argc: number of values received from the command line
+ * Signal handler for SIGINT (Ctrl-C).
  */
-void inicialize_data(data_of_program *data, int argc, char *argv[], char **env)
+void sigint_handler(int sig_num)
 {
-	int i = 0;
-
-	data->program_name = argv[0];
-	data->input_line = NULL;
-	data->command_name = NULL;
-	data->exec_counter = 0;
-	/* define the file descriptor to be readed*/
-	if (argc == 1)
-		data->file_descriptor = STDIN_FILENO;
-	else
-	{
-		data->file_descriptor = open(argv[1], O_RDONLY);
-		if (data->file_descriptor == -1)
-		{
-			_printe(data->program_name);
-			_printe(": 0: Can't open ");
-			_printe(argv[1]);
-			_printe("\n");
-			exit(127);
-		}
-	}
-	data->tokens = NULL;
-	data->env = malloc(sizeof(char *) * 50);
-	if (env)
-	{
-		for (; env[i]; i++)
-		{
-			data->env[i] = str_duplicate(env[i]);
-		}
-	}
-	data->env[i] = NULL;
-	env = data->env;
-
-	data->alias_list = malloc(sizeof(char *) * 20);
-	for (i = 0; i < 20; i++)
-	{
-		data->alias_list[i] = NULL;
-	}
+  /* Reset the signal handler to this function. */
+	signal(SIGINT, sigint_handler);
 }
+
 /**
- * sisifo - its a infinite loop that shows the prompt
- * @prompt: prompt to be printed
- * @data: its a infinite loop that shows the prompt
+ * main - entry point of the program
+ * @ac: number of command-line arguments
+ * @av: array of strings representing the command-line arguments
+ *
+ * Return: integer (0 on success)
  */
-void sisifo(char *prompt, data_of_program *data)
+
+int main(int ac, char **av)
 {
-	int error_code = 0, string_len = 0;
+	data_shell datash;
 
-	while (++(data->exec_counter))
-	{
-		_print(prompt);
-		error_code = string_len = _getline(data);
+	signal(SIGINT, sigint_handler);
 
-		if (error_code == EOF)
-		{
-			free_all_data(data);
-			exit(errno); /* if EOF is the fisrt Char of string, exit*/
-		}
-		if (string_len >= 1)
-		{
-			expand_alias(data);
-			expand_variables(data);
-			tokenize(data);
-			if (data->tokens[0])
-			{ /* if a text is given to prompt, execute */
-				error_code = execute(data);
-				if (error_code != 0)
-					_print_error(error_code, data);
-			}
-			free_recurrent_data(data);
-		}
-	}
+	set_data(&datash, av);
+	shell_loop(&datash);
+	free_data(&datash);
+	return (datash.status < 0 ? 255 : datash.status);
 }
