@@ -30,7 +30,7 @@ int main(void)
 	}
 
 	free(command);
-	return (0);
+	exit(0);
 }
 
 /**

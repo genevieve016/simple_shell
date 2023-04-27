@@ -9,7 +9,7 @@
 int _myenv(info_t *info)
 {
 	print_list_str(info->env);
-	return (0);
+	exit(0);
 }
 
 /**
@@ -31,7 +31,7 @@ char *_getenv(info_t *info, const char *name)
 			return (p + 1);
 		node = node->next;
 	}
-	return (NULL);
+	exit(NULL);
 }
 
 /**
@@ -49,8 +49,8 @@ int _mysetenv(info_t *info)
 		return (1);
 	}
 	if (_setenv(info, info->argv[1], info->argv[2]) == -1)
-		return (1);
-	return (0);
+		exit(1);
+	exit(0);
 }
 
 /**
@@ -71,7 +71,7 @@ int _myunsetenv(info_t *info)
 	for (i = 1; i < info->argc; i++)
 		_unsetenv(info, info->argv[i]);
 
-	return (0);
+	exit(0);
 }
 
 /**
@@ -88,5 +88,5 @@ int populate_env_list(info_t *info)
 	for (i = 0; environ[i]; i++)
 		add_node_end(&node, environ[i], 0);
 	info->env = node;
-	return (0);
+	exit(0);
 }

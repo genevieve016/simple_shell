@@ -9,6 +9,6 @@
 int interactive(info_t *info)
 {
 	if (isatty(STDIN_FILENO) && info->readfd <= 2)
-		return (1);
-	return (0);
+		exit(1);
+	exit(0);
 }
