@@ -1,86 +1,73 @@
 #include "shell.h"
 
 /**
- * free_data - frees memory allocated for data structure
- * @datash: pointer to datash data structure
+ * free_data - frees data structure
  *
- * Return: void
+ * @datash: data structure
+ * Return: no return
  */
-
 void free_data(data_shell *datash)
 {
-	char **env = datash->environ;
-	int i;
+	unsigned int i;
 
-	for (i = 0; env[i] != NULL; i++)
+	for (i = 0; datash->_environ[i]; i++)
 	{
-		free(env[i]);
+		free(datash->_environ[i]);
 	}
-	free(env);
+
+	free(datash->_environ);
 	free(datash->pid);
 }
 
 /**
- * set_data - initializes datash data structure
- * @datash: pointer to datash data structure
- * @av: array of strings representing the command-line args
+ * set_data - Initialize data structure
  *
- * Return: void
+ * @datash: data structure
+ * @av: argument vector
+ * Return: no return
  */
-
 void set_data(data_shell *datash, char **av)
 {
-	int i, environ_len = 0;
+	unsigned int i;
 
-  /* Count the number of environment variables. */
-	for (i = 0; environ[i] != NULL; i++)
-	{
-		environ_len++;
-	}
-
-  /* Set members of the data_shell struct. */
 	datash->av = av;
 	datash->input = NULL;
 	datash->args = NULL;
 	datash->status = 0;
 	datash->counter = 1;
-	datash->pid = malloc(10 * sizeof(char));
-	sprintf(datash->pid, "%d", getpid());
 
-  /* Allocate memory for the environ array. */
-	datash->environ = malloc((environ_len + 1) * sizeof(char *));
-	for (i = 0; environ[i] != NULL; i++)
+	for (i = 0; environ[i]; i++)
+		;
+
+	datash->_environ = malloc(sizeof(char *) * (i + 1));
+
+	for (i = 0; environ[i]; i++)
 	{
-		datash->environ[i] = strdup(environ[i]);
+		datash->_environ[i] = _strdup(environ[i]);
 	}
-	datash->environ[i] = NULL;
+
+	datash->_environ[i] = NULL;
+	datash->pid = aux_itoa(getpid());
 }
 
 /**
- * Signal handler for SIGINT (Ctrl-C).
- */
-void sigint_handler(int sig_num)
-{
-  /* Reset the signal handler to this function. */
-	signal(SIGINT, sigint_handler);
-}
-
-/**
- * main - entry point of the program
- * @ac: number of command-line arguments
- * @av: array of strings representing the command-line arguments
+ * main - Entry point
  *
- * Return: integer (0 on success)
+ * @ac: argument count
+ * @av: argument vector
+ *
+ * Return: 0 on success.
  */
-
 int main(int ac, char **av)
 {
 	data_shell datash;
+	(void) ac;
 
-	signal(SIGINT, sigint_handler);
-
+	signal(SIGINT, get_sigint);
 	set_data(&datash, av);
 	shell_loop(&datash);
 	free_data(&datash);
-	return (datash.status < 0 ? 255 : datash.status);
+	if (datash.status < 0)
+		return (255);
+	return (datash.status);
 }
