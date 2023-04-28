@@ -1,73 +1,79 @@
+shell.c
+
 #include "shell.h"
 
 /**
- * free_data - frees data structure
+ * init_data - function to initialise data structure
+ * @data: pointer to data structure
+ * @args: pointer to argument vector
  *
- * @datash: data structure
- * Return: no return
+ * Return: void
  */
-void free_data(data_shell *datash)
-{
-	unsigned int i;
 
-	for (i = 0; datash->_environ[i]; i++)
+void init_data(data_sh * data, char **args)
+{
+	data->av = args;
+	data->input = NULL;
+	data->args = NULL;
+	data->status = 0;
+	data->counter = 1;
+
+	unsigned int i = 0;
+
+	while (environ[i] != NULL)
 	{
-		free(datash->_environ[i]);
+		i++;
 	}
 
-	free(datash->_environ);
-	free(datash->pid);
+	data->_environ = (char **) malloc(sizeof(char *) * (i + 1));
+	for (unsigned int j = 0; j < i; j++)
+	{
+		data->_environ[j] = _strdup(environ[j]);
+	}
+	data->_environ[i] = NULL;
+	data->pid = aux_itoa(getpid());
 }
 
 /**
- * set_data - Initialize data structure
+ * free_data - function to free data structure
+ * @data: pointer to data structure
  *
- * @datash: data structure
- * @av: argument vector
- * Return: no return
+ * Return: void
  */
-void set_data(data_shell *datash, char **av)
+
+void free_data(data_sh *data)
 {
-	unsigned int i;
-
-	datash->av = av;
-	datash->input = NULL;
-	datash->args = NULL;
-	datash->status = 0;
-	datash->counter = 1;
-
-	for (i = 0; environ[i]; i++)
-		;
-
-	datash->_environ = malloc(sizeof(char *) * (i + 1));
-
-	for (i = 0; environ[i]; i++)
+	for (unsigned int i = 0; data->_environ[i]; i++)
 	{
-		datash->_environ[i] = _strdup(environ[i]);
+		free(data->_environ[i]);
 	}
-
-	datash->_environ[i] = NULL;
-	datash->pid = aux_itoa(getpid());
+	free(data->_environ);
+	free(data->pid);
 }
 
 /**
- * main - Entry point
+ * main - entry point function
+ * @argc: number of arguments
+ * @argv: pointer to argument vector
  *
- * @ac: argument count
- * @av: argument vector
- *
- * Return: 0 on success.
+ * Return: 0 (Success), 225 (Failure)
  */
-int main(int ac, char **av)
+
+int main(int argc, char **argv)
 {
-	data_shell datash;
-	(void) ac;
+	data_sh data;
+	(void) argc;
 
 	signal(SIGINT, get_sigint);
-	set_data(&datash, av);
-	shell_loop(&datash);
-	free_data(&datash);
-	if (datash.status < 0)
+	init_data(&data, argv);
+
+	sh_loop(&data);
+
+	free_data(&data);
+	if (data.status < 0)
+	{
 		return (255);
-	return (datash.status);
+	}
+	return (data.status);
 }
+
