@@ -1,5 +1,3 @@
-shell.c
-
 #include "shell.h"
 
 /**
@@ -28,7 +26,7 @@ void init_data(data_sh * data, char **args)
 	data->_environ = (char **) malloc(sizeof(char *) * (i + 1));
 	for (unsigned int j = 0; j < i; j++)
 	{
-		data->_environ[j] = _strdup(environ[j]);
+		data->_environ[j] = _str_dup(environ[j]);
 	}
 	data->_environ[i] = NULL;
 	data->pid = aux_itoa(getpid());
@@ -64,7 +62,7 @@ int main(int argc, char **argv)
 	data_sh data;
 	(void) argc;
 
-	signal(SIGINT, get_sigint);
+	signal(SIGINT, getlogin);
 	init_data(&data, argv);
 
 	sh_loop(&data);
